@@ -1,84 +1,118 @@
 package MojoX::Model::Complex;
 use Mojo::Base 'MojoX::Model';
 
-sub TABLE_ALIAS   { die "Method 'TABLE_ALIAS' not implemented by sub-class" }
+use Carp qw/croak/;
 
-sub _make_check {
+sub TABLE_ALIAS   { die "Method 'TABLE_ALIAS' not implemented" }
+sub TABLE_SERIAL  { die "Method 'TABLE_SERIAL' not implemented" }
+
+sub check_params {
   my ($self, $params, @fields) = @_;
 
-  croak "There are no fields to check!" unless @fields;
+  croak "Wrong 'check_params' helper usage"
+    unless ref $params eq 'HASH' and @fields;
 
-  my @missing = grep { not defined $params->{$_} } @fields;
-  croak "Missing required params: @missing" if @missing;
+  my @miss = grep { not defined $params->{$_} } @fields;
+  croak "Missing required params: @miss" if @miss;
 
   return $self;
 }
 
-sub _make_lock {
+sub make_ignore {
   my ($self, $params) = @_;
 
-  croak "Malformed required params: query, lock!"
-    unless defined $params->{query} and defined $params->{lock};
+  croak "Wrong 'make_ignore' helper usage"
+    unless ref $params eq 'HASH'
+      and defined $params->{sql}
+      and not ref $params->{sql};
 
-  if ($params->{lock} ne 'none') {
-    my @values = (uc $params->{lock}, $self->TABLE_ALIAS);
-    $params->{query} .= sprintf "FOR %s OF %s\n", @values;
+  $params->{ignore} //= 0;
+
+  if ($params->{ignore}) {
+    $params->{sql} .= sprintf "AND %s.%s != ?\n",
+      $self->TABLE_ALIAS, $self->TABLE_SERIAL;
+
+    push @{$params->{values}}, $params->{ignore};
   }
 
   return $self;
 }
 
-sub _query_p {
+sub make_lock {
   my ($self, $params) = @_;
 
-  croak "Malformed required params: query, values!"
-    unless defined $params->{query} and defined $params->{values};
+  croak "Wrong 'make_lock' helper usage"
+    unless ref $params eq 'HASH'
+      and defined $params->{sql}
+      and not ref $params->{sql};
 
-  $self->pg_db->query_p($params->{query}, @{$params->{values}});
+  $params->{lock} //= $self->pg_lock;
+
+  if ($params->{lock} ne 'none') {
+    my @lock = (uc $params->{lock}, $self->TABLE_ALIAS);
+    $params->{sql} .= sprintf "FOR %s OF %s\n", @lock;
+  }
+
+  return $self;
 }
 
-sub _single_p {
+sub query_p {
+  my ($self, $params) = @_;
+
+  croak "Wrong 'query_p' helper usage"
+    unless ref $params eq 'HASH'
+      and defined $params->{sql}
+      and not ref $params->{sql}
+      and ref $params->{values} eq 'HASH';
+
+  $self->pg_db->query_p($params->{sql}, @{$params->{values}});
+}
+
+sub pass_single {
   my ($self, $params, $entity, %onward) = @_;
 
-  croak "Usage: _single_p(\$params, \$entity, \%onward)"
-    unless ref $params eq 'HASH' and ref $entity eq 'HASH';
+  croak "Wrong 'pass_entity' helper usage"
+    unless ref $params eq 'HASH'
+      and defined $params->{stash}
+      and not ref $params->{stash}
+      and defined $params->{strict}
+      and not ref $params->{strict}
+      and defined $params->{message}
+      and not ref $params->{message};
 
-  my @require = qw/stash strict message/;
-  my @missing = grep { not defined $params->{$_} } @require;
-  croak "Missing required params: @missing!" if @missing;
-
-  $params->{revert} //= 0;
+  $params->{reverse} //= 0;
+  $params->{handler} //= sub { Mojo::Promise->resolve(@_) };
 
   $self->stash($params->{stash} => [$entity, %onward])
     if $params->{stash} ne 'none';
 
-  unless ($params->{revert}) {
-    return Mojo::Promise->reject(@params{qw/message strict/}, %onward)
+  unless ($params->{reverse}) {
+    return Mojo::Promise->reject(@$params{qw/message strict/}, %onward)
       if $params->{strict} ne 'none' and not defined $entity;
   }
 
   else {
-    return Mojo::Promise->reject(@params{qw/message strict/}, %onward)
+    return Mojo::Promise->reject(@$params{qw/message strict/}, %onward)
       if $params->{strict} ne 'none' and defined $entity;
   }
 
-  Mojo::Promise->resolve($entity, %onward);
+  $params->{handler}->($entity, %onward);
 }
 
-sub _plural_p {
+sub pass_plural {
   my ($self, $params, $plenty, %onward) = @_;
 
-  croak "Usage: _plural_p(\$params, \$plenty, \%onward)"
-    unless ref $params eq 'HASH' and ref $plenty eq 'ARRAY';
+  croak "Wrong 'pass_plural' helper usage"
+    unless ref $params eq 'HASH'
+      and defined $params->{stash}
+      and not ref $params->{stash};
 
-  my @require = qw/stash/;
-  my @missing = grep { not defined $params->{$_} } @require;
-  croak "Missing required params: @missing!" if @missing;
+  $params->{handler} //= sub { Mojo::Promise->resolve(@_) };
 
-  $self->stash($params->{stash} => [$entity, %onward])
+  $self->stash($params->{stash} => [$plenty, %onward])
     if $params->{stash} ne 'none';
 
-  Mojo::Promise->resolve($plural, %onward);
+  $params->{handler}->($plenty, %onward);
 }
 
 1;
