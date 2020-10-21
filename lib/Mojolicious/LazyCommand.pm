@@ -1,16 +1,12 @@
 package Mojolicious::LazyCommand;
 use Mojo::Base 'Mojolicious::Command';
 
-use Mojo::Loader qw/load_class/;
-
-sub models {
+has models => sub {
   my ($self) = @_;
 
-  my $class = join '::', ref $self->app, 'Models';
-  my $e = load_class $class;
-  die "Loading $class failed: $e" if ref $e;
+  my $app = $self->app;
 
-  return $class->new(app => $self->app);
-}
+  state $models = $app->{models}->new(app => $app);
+};
 
 1;

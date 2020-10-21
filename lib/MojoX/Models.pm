@@ -26,12 +26,13 @@ sub pg_commit {
   return $self;
 }
 
-sub _load_model {
+sub load_model {
   my ($self, $name) = @_;
 
   my $class = join '::', ref $self->app, 'Model', $name;
   my $e = load_class $class;
-  die "Loading $class failed: $e" if ref $e;
+  die ref $e ? $e : "LazyModels $class not found" if $e;
+  $app->log->debug("LazyModel $class successfully loaded");
 
   return $class->new(models => $self);
 }
