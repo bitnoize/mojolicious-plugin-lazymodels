@@ -5,4 +5,6 @@
 0.02 2020-10-21
   - Optimize models and interface load.
   - MojoX::Model::Complex for easy compose SQL.
+  - Two separate Pg objects: for readwrite and for readonly operations.
+  - Use helpers instead of attributes for global objects.
 

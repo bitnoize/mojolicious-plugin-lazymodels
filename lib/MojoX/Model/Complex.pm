@@ -3,8 +3,8 @@ use Mojo::Base 'MojoX::Model';
 
 use Carp qw/croak/;
 
-sub TABLE_ALIAS   { die "Method 'TABLE_ALIAS' not implemented" }
-sub TABLE_SERIAL  { die "Method 'TABLE_SERIAL' not implemented" }
+sub TABLE_ALIAS   { die "Constant 'TABLE_ALIAS' not implemented" }
+sub TABLE_SERIAL  { die "Constant 'TABLE_SERIAL' not implemented" }
 
 sub check_params {
   my ($self, $params, @fields) = @_;

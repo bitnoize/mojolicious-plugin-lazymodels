@@ -3,10 +3,9 @@ use Mojo::Base -base;
 
 use Mojo::Loader qw/load_class/;
 
-has app       => undef, weak => 1;
+has app => undef, weak => 1;
 
-has pg_db     => sub { shift->app->pg->db };
-has pg_tx     => undef;
+has [qw/pg_db pg_tx/];
 
 sub stash { Mojo::Util::_stash(stash => @_) }
 
@@ -33,7 +32,7 @@ sub load_model {
   my $e = load_class $class;
   die ref $e ? $e : "LazyModels $class not found" if $e;
 
-  return $class->new(models => $self);
+  my $model = $class->new(models => $self);
 }
 
 1;

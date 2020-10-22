@@ -10,16 +10,35 @@ $VERSION = eval $VERSION;
 sub register {
   my ($plugin, $app, $conf) = @_;
 
-  die "LazyModels requires 'postgres' config attribute"
-    unless defined $conf->{postgres};
+  my $url_rw = $conf->{readwrite} //= $conf->{connect};
+  my $url_ro = $conf->{readonly}  //= $conf->{readwrite};
 
-  $app->attr(pg => sub { state $pg = Mojo::Pg->new($conf->{postgres}) });
+  die "LazyModels requires at last 'connect' config attribute\n"
+    unless $url_rw and $url_ro;
+
+  $app->helper(pg_rw => sub {
+    state $pg = Mojo::Pg->new($url_rw);
+  });
+
+  $app->helper(pg_ro => sub {
+    state $pg = Mojo::Pg->new($url_ro)->options(ReadOnly => 1);
+  });
+
+  $app->helper(models_rw => sub {
+    my $models =
+      $app->{models}->new(app => $app, pg_db => $app->pg_rw->db);
+  });
+
+  $app->helper(models_ro => sub {
+    my $models =
+      $app->{models}->new(app => $app, pg_db => $app->pg_ro->db);
+  });
 
   my $class = join '::', ref $app, 'Models';
   my $e = load_class $class;
-  die ref $e ? $e : "LazyModels $class not found" if $e;
+  die ref $e ? $e : "LazyModels $class not found!" if $e;
 
-  $app->{lazy_models} = $class;
+  $app->{models} = $class;
 }
 
 1;
