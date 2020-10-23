@@ -31,6 +31,7 @@ sub load_model {
   my $class = join '::', ref $self->app, 'Model', $name;
   my $e = load_class $class;
   die ref $e ? $e : "LazyModels $class not found" if $e;
+  $self->app->log->debug("Model '$class' successfully loaded");
 
   my $model = $class->new(models => $self);
 }

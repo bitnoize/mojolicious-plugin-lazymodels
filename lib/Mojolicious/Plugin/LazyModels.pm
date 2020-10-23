@@ -10,33 +10,29 @@ $VERSION = eval $VERSION;
 sub register {
   my ($plugin, $app, $conf) = @_;
 
-  my $url_rw = $conf->{readwrite} //= $conf->{connect};
-  my $url_ro = $conf->{readonly}  //= $conf->{readwrite};
-
-  die "LazyModels requires at last 'connect' config attribute\n"
-    unless $url_rw and $url_ro;
+  die "LazyModels requires 'readwrite' and 'readonly' attributes\n"
+    unless $conf->{readwrite} and $conf->{readonly};
 
   $app->helper(pg_rw => sub {
-    state $pg = Mojo::Pg->new($url_rw);
+    state $pg = Mojo::Pg->new($conf->{readwrite});
   });
 
   $app->helper(pg_ro => sub {
-    state $pg = Mojo::Pg->new($url_ro)->options(ReadOnly => 1);
+    state $pg = Mojo::Pg->new($conf->{readonly})->options(ReadOnly => 1);
   });
 
   $app->helper(models_rw => sub {
-    my $models =
-      $app->{models}->new(app => $app, pg_db => $app->pg_rw->db);
+    my $models = $app->{models}->new(app => $app, pg_db => $app->pg_rw->db);
   });
 
   $app->helper(models_ro => sub {
-    my $models =
-      $app->{models}->new(app => $app, pg_db => $app->pg_ro->db);
+    my $models = $app->{models}->new(app => $app, pg_db => $app->pg_ro->db);
   });
 
   my $class = join '::', ref $app, 'Models';
   my $e = load_class $class;
   die ref $e ? $e : "LazyModels $class not found!" if $e;
+  $app->log->debug("Models '$class' successfully loaded");
 
   $app->{models} = $class;
 }
