@@ -5,7 +5,7 @@ use Mojo::Loader qw/load_class/;
 
 has app => undef, weak => 1;
 
-has [qw/pg_db pg_tx/];
+has [qw/pg_db pg_pubsub pg_tx/];
 
 sub stash { Mojo::Util::_stash(stash => @_) }
 

@@ -1,10 +1,16 @@
 
-0.01 2020-10-13
+0.01 13-10-2020
   - Resurrect plugin and reset version.
 
-0.02 2020-10-21
+0.02 21-10-2020
   - Optimize models and interface load.
   - MojoX::Model::Complex for easy compose SQL.
   - Two separate Pg objects: for readwrite and for readonly operations.
   - Use helpers instead of attributes for global objects.
+
+0.03 24-10-2020
+  - Processing migrations.
+  - Command 'dropdata' to purge database.
+  - Config 'connect' is the only required parameter.
+  - PubSub attribute available via interface.
 

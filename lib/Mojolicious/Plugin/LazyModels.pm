@@ -4,14 +4,18 @@ use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::Loader qw/load_class/;
 use Mojo::Pg;
 
-our $VERSION = "0.02";
+our $VERSION = "0.03";
 $VERSION = eval $VERSION;
 
 sub register {
   my ($plugin, $app, $conf) = @_;
 
-  die "LazyModels requires 'readwrite' and 'readonly' attributes\n"
-    unless $conf->{readwrite} and $conf->{readonly};
+  $conf->{readwrite}  //= $conf->{connect};
+  $conf->{readonly}   //= $conf->{readwrite};
+  $conf->{migrations} //= "schema/migrations.sql";
+
+  die "LazyModels requires at last 'connect' config attribute\n"
+    unless defined $conf->{readwrite} and defined $conf->{readonly};
 
   $app->helper(pg_rw => sub {
     state $pg = Mojo::Pg->new($conf->{readwrite});
@@ -22,13 +26,31 @@ sub register {
   });
 
   $app->helper(models_rw => sub {
-    my $models = $app->{models}->new(app => $app, pg_db => $app->pg_rw->db);
+    my %attrs = (
+      pg_db     => $app->pg_rw->db,
+      pg_pubsub => $app->pg_rw->pubsub
+    );
+
+    my $models = $app->{models}->new(app => $app, %attrs);
   });
 
   $app->helper(models_ro => sub {
-    my $models = $app->{models}->new(app => $app, pg_db => $app->pg_ro->db);
+    my %attrs = (
+      pg_db     => $app->pg_rw->db,
+      pg_pubsub => $app->pg_rw->pubsub
+    );
+
+    my $models = $app->{models}->new(app => $app, %attrs);
   });
 
+  # Migrate only if migrations file exists
+  my $migrations = $app->home->child($conf->{migrations});
+  if ($migrations->stat) {
+    $app->log->debug("Process migrations from " . $migrations->to_rel);
+    $app->pg_rw->migrations->from_file($migrations)->migrate;
+  }
+
+  # Models interface
   my $class = join '::', ref $app, 'Models';
   my $e = load_class $class;
   die ref $e ? $e : "LazyModels $class not found!" if $e;
