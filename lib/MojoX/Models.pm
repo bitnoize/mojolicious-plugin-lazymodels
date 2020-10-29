@@ -25,7 +25,7 @@ sub pg_commit {
   return $self;
 }
 
-sub load_model {
+sub _load_model {
   my ($self, $name) = @_;
 
   my $class = join '::', ref $self->app, 'Model', $name;

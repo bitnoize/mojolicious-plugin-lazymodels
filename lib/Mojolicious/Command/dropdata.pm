@@ -26,7 +26,7 @@ sub run {
 
 =head1 NAME
 
-Mojolicious::Command::dropdata - Cleanup database
+Mojolicious::Command::dropdata - Roll-back database migrations
 
 =head1 SYNOPSIS
 

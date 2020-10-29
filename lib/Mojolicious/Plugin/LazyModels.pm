@@ -4,7 +4,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::Loader qw/load_class/;
 use Mojo::Pg;
 
-our $VERSION = "0.03";
+our $VERSION = "0.05";
 $VERSION = eval $VERSION;
 
 sub register {
@@ -36,8 +36,8 @@ sub register {
 
   $app->helper(models_ro => sub {
     my %attrs = (
-      pg_db     => $app->pg_rw->db,
-      pg_pubsub => $app->pg_rw->pubsub
+      pg_db     => $app->pg_ro->db,
+      pg_pubsub => $app->pg_ro->pubsub
     );
 
     my $models = $app->{models}->new(app => $app, %attrs);

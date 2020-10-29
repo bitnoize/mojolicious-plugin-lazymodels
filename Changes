@@ -14,3 +14,12 @@
   - Config 'connect' is the only required parameter.
   - PubSub attribute available via interface.
 
+0.04 26-10-2020
+  - Base model 'Complex' renamed to 'Flex'.
+  - Obsolete _make_* helpers in 'Flex' model.
+  - New promise method _entity_p and _plural_p in Flex model.
+
+0.05 29-10-2020
+  - Left only basic model, removed rest.
+  - Move _entity_p and _plural_p helpers to basic model.
+
