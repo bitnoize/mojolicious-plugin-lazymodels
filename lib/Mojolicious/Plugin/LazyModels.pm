@@ -1,6 +1,7 @@
 package Mojolicious::Plugin::LazyModels;
 use Mojo::Base 'Mojolicious::Plugin';
 
+use Scalar::Util qw/looks_like_number/;
 use Mojo::Loader qw/load_class/;
 use Mojo::Pg;
 
@@ -22,7 +23,9 @@ sub register {
   });
 
   $app->helper(pg_ro => sub {
-    state $pg = Mojo::Pg->new($conf->{readonly})->options(ReadOnly => 1);
+    state $pg = Mojo::Pg->new($conf->{readonly})->options({
+      ReadOnly => 1, AutoCommit => 0
+    });
   });
 
   $app->helper(models_rw => sub {
@@ -43,6 +46,30 @@ sub register {
     my $models = $app->{models}->new(app => $app, %attrs);
   });
 
+  $app->validator->add_check(boolean => sub {
+    shift->in(0, 1)->has_error(shift)
+  });
+
+  $app->validator->add_check(smallint => sub {
+    shift->num($app->{models}->RANGE_SMALLINT)->has_error(shift)
+  });
+
+  $app->validator->add_check(integer => sub {
+    shift->num($app->{models}->RANGE_INTEGER)->has_error(shift)
+  });
+
+  $app->validator->add_check(bigint => sub {
+    shift->num($app->{models}->RANGE_BIGINT)->has_error(shift)
+  });
+
+  $app->validator->add_check(text => sub {
+    shift->like($app->{models}->LIKE_TEXT)->has_error(shift)
+  });
+
+  $app->validator->add_check(uuid => sub {
+    shift->like($app->{models}->LIKE_UUID)->has_error(shift)
+  });
+
   # Migrate only if migrations file exists
   my $migrations = $app->home->child($conf->{migrations});
   if ($migrations->stat) {
@@ -50,10 +77,9 @@ sub register {
     $app->pg_rw->migrations->from_file($migrations)->migrate;
   }
 
-  # Models interface
   my $class = join '::', ref $app, 'Models';
   my $e = load_class $class;
-  die ref $e ? $e : "LazyModels $class not found!" if $e;
+  die ref $e ? $e : "LazyModels $class not found" if $e;
   $app->log->debug("Models '$class' successfully loaded");
 
   $app->{models} = $class;

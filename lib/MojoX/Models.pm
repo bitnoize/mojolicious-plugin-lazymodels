@@ -1,11 +1,23 @@
 package MojoX::Models;
 use Mojo::Base -base;
 
+use Mojo::Util;
 use Mojo::Loader qw/load_class/;
 
 has app => undef, weak => 1;
 
 has [qw/pg_db pg_pubsub pg_tx/];
+
+sub RANGE_SMALLINT  { 0, 32767 }
+sub RANGE_INTEGER   { 0, 2147483647 }
+sub RANGE_BIGINT    { 0, 1152921504606846976 }
+
+sub LIKE_TEXT       { qr/^[ -~]+$/ }
+sub LIKE_UUID       { qr/^[0-9a-f]{8}-
+                          [0-9a-f]{4}-
+                          [0-9a-f]{4}-
+                          [0-9a-f]{4}-
+                          [0-9a-f]{12}$/ix }
 
 sub stash { Mojo::Util::_stash(stash => @_) }
 

@@ -1,12 +1,14 @@
 package MojoX::Model;
 use Mojo::Base -base;
 
-has models    => undef, weak => 1;
+use Carp 'croak';
+
+has models  => undef;
 
 sub pg_db     { shift->models->pg_db };
 sub pg_tx     { shift->models->pg_tx };
 
-sub stash     { shift->models->stash };
+sub stash     { shift->models->stash(@_) };
 
 sub pg_lock   { shift->pg_db->dbh->{BegunWork} ? 'share' : 'none' }
 
@@ -42,10 +44,10 @@ sub _entity_p {
     }
 
     $params{handler}->($entity, %onward);
-  });
+  })->wait;
 }
 
-sub _plural_p {
+sub _plenty_p {
   my ($self, %params) = @_;
 
   croak "Required param 'sql' missing"
