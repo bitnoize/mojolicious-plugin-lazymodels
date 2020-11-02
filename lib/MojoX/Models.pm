@@ -6,7 +6,7 @@ use Mojo::Loader qw/load_class/;
 
 has app => undef, weak => 1;
 
-has [qw/pg_db pg_pubsub pg_tx/];
+has [qw/pg_db pg_tx/];
 
 sub RANGE_SMALLINT  { 0, 32767 }
 sub RANGE_INTEGER   { 0, 2147483647 }

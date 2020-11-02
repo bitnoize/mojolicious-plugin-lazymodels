@@ -1,26 +1,28 @@
 
-0.01 13-10-2020
+0.01 2020-10-13
   - Resurrect plugin and reset version.
 
-0.02 21-10-2020
+0.02 2020-10-21
   - Optimize models and interface load.
   - MojoX::Model::Complex for easy compose SQL.
   - Two separate Pg objects: for readwrite and for readonly operations.
   - Use helpers instead of attributes for global objects.
 
-0.03 24-10-2020
+0.03 2020-10-24
   - Processing migrations.
   - Command 'dropdata' to purge database.
   - Config 'connect' is the only required parameter.
   - PubSub attribute available via interface.
 
-0.04 26-10-2020
+0.04 2020-10-26
   - Base model 'Complex' renamed to 'Flex'.
   - Obsolete _make_* helpers in 'Flex' model.
   - New promise method _entity_p and _plenty_p in Flex model.
 
-0.05 31-10-2020
+0.05 2020-11-02
   - Left only basic model, removed rest.
   - Move _entity_p and _plenty_p helpers to basic model.
   - Basic boolean, numeric, text and uuid data type validators.
+  - New accessors pubsub_rw and pubsub_ro.
+  - Fix memory leak with 'models' accessor in base Model.pm.
 

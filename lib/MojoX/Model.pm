@@ -3,7 +3,7 @@ use Mojo::Base -base;
 
 use Carp 'croak';
 
-has models  => undef;
+has models  => undef, weak => 1;
 
 sub pg_db     { shift->models->pg_db };
 sub pg_tx     { shift->models->pg_tx };
@@ -44,7 +44,7 @@ sub _entity_p {
     }
 
     $params{handler}->($entity, %onward);
-  })->wait;
+  });
 }
 
 sub _plenty_p {

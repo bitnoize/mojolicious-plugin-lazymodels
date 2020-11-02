@@ -28,22 +28,24 @@ sub register {
     });
   });
 
-  $app->helper(models_rw => sub {
-    my %attrs = (
-      pg_db     => $app->pg_rw->db,
-      pg_pubsub => $app->pg_rw->pubsub
-    );
+  $app->helper(pubsub_rw => sub {
+    shift->{pubsub} //= $app->pg_rw->pubsub
+  });
 
-    my $models = $app->{models}->new(app => $app, %attrs);
+  $app->helper(pubsub_ro => sub {
+    shift->{pubsub} //= $app->pg_ro->pubsub
+  });
+
+  $app->helper(models_rw => sub {
+    shift->{models} //= $app->{models}->new(
+      app => $app, pg_db => $app->pg_rw->db
+    );
   });
 
   $app->helper(models_ro => sub {
-    my %attrs = (
-      pg_db     => $app->pg_ro->db,
-      pg_pubsub => $app->pg_ro->pubsub
+    shift->{models} //= $app->{models}->new(
+      app => $app, pg_db => $app->pg_ro->db
     );
-
-    my $models = $app->{models}->new(app => $app, %attrs);
   });
 
   $app->validator->add_check(boolean => sub {
