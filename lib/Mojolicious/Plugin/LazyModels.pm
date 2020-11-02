@@ -18,6 +18,10 @@ sub register {
   die "LazyModels requires at last 'connect' config attribute\n"
     unless defined $conf->{readwrite} and defined $conf->{readonly};
 
+  #
+  # Accessors
+  #
+
   $app->helper(pg_rw => sub {
     state $pg = Mojo::Pg->new($conf->{readwrite});
   });
@@ -28,13 +32,9 @@ sub register {
     });
   });
 
-  $app->helper(pubsub_rw => sub {
-    shift->{pubsub} //= $app->pg_rw->pubsub
-  });
-
-  $app->helper(pubsub_ro => sub {
-    shift->{pubsub} //= $app->pg_ro->pubsub
-  });
+  #
+  # Models
+  #
 
   $app->helper(models_rw => sub {
     shift->{models} //= $app->{models}->new(
@@ -47,6 +47,43 @@ sub register {
       app => $app, pg_db => $app->pg_ro->db
     );
   });
+
+  #
+  # PubSub
+  #
+
+  $app->helper(pubsub_rw => sub {
+    shift->{pubsub} //= $app->pg_rw->pubsub
+  });
+
+  $app->helper(pubsub_ro => sub {
+    shift->{pubsub} //= $app->pg_ro->pubsub
+  });
+
+  $app->helper(pubsub_listen => sub {
+    my ($c, $channel, $cb) = @_;
+
+    my $pubsub = $app->pubsub_ro;
+    $pubsub->json($channel)->listen($channel => $cb);
+  });
+
+  $app->helper(pubsub_unlisten => sub {
+    my ($c, @unlisten) = @_;
+
+    my $pubsub = $app->pubsub_ro;
+    $pubsub->unlisten(@$_) for @unlisten;
+  });
+
+  $app->helper(pubsub_notify => sub {
+    my ($c, @notify) = @_;
+
+    my $pubsub = $app->pubsub_rw;
+    $pubsub->notify(@$_) for @notify;
+  });
+
+  #
+  # Validators
+  #
 
   $app->validator->add_check(boolean => sub {
     shift->in(0, 1)->has_error(shift)
