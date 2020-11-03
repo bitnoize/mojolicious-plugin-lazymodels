@@ -52,33 +52,33 @@ sub register {
   # PubSub
   #
 
-  $app->helper(pubsub_rw => sub {
-    shift->{pubsub} //= $app->pg_rw->pubsub
-  });
-
-  $app->helper(pubsub_ro => sub {
-    shift->{pubsub} //= $app->pg_ro->pubsub
-  });
-
   $app->helper(pubsub_listen => sub {
     my ($c, $channel, $cb) = @_;
 
-    my $pubsub = $app->pubsub_ro;
+    my $pubsub = $app->pg_rw->pubsub;
     $pubsub->json($channel)->listen($channel => $cb);
   });
 
   $app->helper(pubsub_unlisten => sub {
     my ($c, @unlisten) = @_;
 
-    my $pubsub = $app->pubsub_ro;
-    $pubsub->unlisten(@$_) for @unlisten;
+    my $pubsub = $app->pg_rw->pubsub;
+    map {
+      my ($channel, $json) = @$_;
+      $pubsub->unlisten($channel => $json);
+    } @unlisten;
+    return $pubsub;
   });
 
   $app->helper(pubsub_notify => sub {
     my ($c, @notify) = @_;
 
-    my $pubsub = $app->pubsub_rw;
-    $pubsub->notify(@$_) for @notify;
+    my $pubsub = $app->pg_rw->pubsub;
+    map {
+      my ($channel, $json) = @$_;
+      $pubsub->json($channel)->notify($channel => $json);
+    } @notify;
+    return $pubsub;
   });
 
   #

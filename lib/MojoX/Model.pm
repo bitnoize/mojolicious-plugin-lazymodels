@@ -22,6 +22,8 @@ sub _entity_p {
   my %onward = %{$params{onward} //= {}};
 
   $params{stash}    //= 'none';
+  $params{strict}   //= 'exception';
+  $params{message}  //= "Lost entity";
   $params{reverse}  //= 0;
   $params{handler}  //= sub { Mojo::Promise->resolve(@_) };
 
