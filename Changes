@@ -19,7 +19,7 @@
   - Obsolete _make_* helpers in 'Flex' model.
   - New promise method _entity_p and _plenty_p in Flex model.
 
-0.05 2020-11-03
+0.05 2020-11-18
   - Left only basic model, removed rest.
   - Move _entity_p and _plenty_p helpers to basic model.
   - Basic boolean, numeric, text and uuid data type validators.

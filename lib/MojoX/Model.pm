@@ -1,30 +1,33 @@
 package MojoX::Model;
 use Mojo::Base -base;
 
-use Carp 'croak';
+use Carp qw/croak/;
 
 has models  => undef, weak => 1;
 
-sub pg_db     { shift->models->pg_db };
-sub pg_tx     { shift->models->pg_tx };
+sub pg_db     { shift->models->pg_db      };
+sub pg_tx     { shift->models->pg_tx      };
+sub pg_pubsub { shift->models->pg_pubsub  };
+sub pg_notify { shift->models->pg_notify  };
 
-sub stash     { shift->models->stash(@_) };
+sub stash     { shift->models->stash(@_)  };
 
 sub pg_lock   { shift->pg_db->dbh->{BegunWork} ? 'share' : 'none' }
 
 sub _entity_p {
   my ($self, %params) = @_;
 
-  croak "Required param 'sql' missing"
+  croak "Required param 'sql' is missing"
     unless defined $params{sql};
 
   my @values = @{$params{values} //= []};
   my %onward = %{$params{onward} //= {}};
 
-  $params{stash}    //= 'none';
-  $params{strict}   //= 'exception';
-  $params{message}  //= "Lost entity";
   $params{reverse}  //= 0;
+  $params{strict}   //= 'none';
+  $params{message}  //= "error.unknown_error_message";
+  $params{stash}    //= 'none';
+  $params{channel}  //= 'none';
   $params{handler}  //= sub { Mojo::Promise->resolve(@_) };
 
   $self->pg_db->query_p($params{sql}, @values)->then(sub {
@@ -45,6 +48,9 @@ sub _entity_p {
         if $params{strict} ne 'none' and defined $entity;
     }
 
+    push @{$self->pg_notify}, [$params{channel} => $entity]
+      if $params{channel} ne 'none';
+
     $params{handler}->($entity, %onward);
   });
 }
@@ -52,13 +58,14 @@ sub _entity_p {
 sub _plenty_p {
   my ($self, %params) = @_;
 
-  croak "Required param 'sql' missing"
+  croak "Required param 'sql' is missing"
     unless defined $params{sql};
 
   my @values = @{$params{values} //= []};
   my %onward = %{$params{onward} //= {}};
 
   $params{stash}    //= 'none';
+  $params{channel}  //= 'none';
   $params{handler}  //= sub { Mojo::Promise->resolve(@_) };
 
   $self->pg_db->query_p($params{sql}, @values)->then(sub {
@@ -67,10 +74,14 @@ sub _plenty_p {
     my $hashes = $result->expand->hashes;
     my $plenty = $hashes->to_array;
 
-    $onward{size} = $hashes->size;
+    $onward{list_size} = $hashes->size;
 
     $self->stash($params{stash} => [$plenty, %onward])
       if $params{stash} ne 'none';
+
+    $hashes->each(sub {
+      push @{$self->pg_notify}, [$params{channel} => $_]
+    }) if $params{channel} ne 'none';
 
     $params{handler}->($plenty, %onward);
   });

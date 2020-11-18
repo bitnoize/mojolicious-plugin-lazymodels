@@ -1,30 +1,38 @@
 package MojoX::Models;
 use Mojo::Base -base;
 
-use Mojo::Util;
+use Carp qw/croak/;
+use Mojo::Collection;
 use Mojo::Loader qw/load_class/;
+use Mojo::Util;
 
 has app => undef, weak => 1;
 
-has [qw/pg_db pg_tx/];
+has [qw/pg_db pg_tx pg_pubsub/];
 
-sub RANGE_SMALLINT  { 0, 32767 }
-sub RANGE_INTEGER   { 0, 2147483647 }
-sub RANGE_BIGINT    { 0, 1152921504606846976 }
+has pg_notify => sub { Mojo::Collection->new };
 
-sub LIKE_TEXT       { qr/^[ -~]+$/ }
-sub LIKE_UUID       { qr/^[0-9a-f]{8}-
-                          [0-9a-f]{4}-
-                          [0-9a-f]{4}-
-                          [0-9a-f]{4}-
-                          [0-9a-f]{12}$/ix }
+sub PUBSUB_CHANNELS     { }
 
-sub stash { Mojo::Util::_stash(stash => @_) }
+sub UNSIGNED_SMALLINT   { 0, 32767 }
+sub UNSIGNED_INTEGER    { 0, 2147483647 }
+sub UNSIGNED_BIGINT     { 0, 1152921504606846976 }
+
+sub SIGNED_SMALLINT     { -32768,               32767 }
+sub SIGNED_INTEGER      { -2147483648,          2147483647 }
+sub SIGNED_BIGINT       { -9223372036854775808, 9223372036854775807 }
+
+sub LIKE_UUID           { qr/^[0-9a-f]{8}-
+                              [0-9a-f]{4}-
+                              [0-9a-f]{4}-
+                              [0-9a-f]{4}-
+                              [0-9a-f]{12}$/ix }
 
 sub pg_atomic {
   my ($self) = @_;
 
   $self->pg_tx($self->pg_db->begin);
+  $self->pg_pubsub->json($_) for $self->PUBSUB_CHANNELS;
 
   return $self;
 }
@@ -34,8 +42,24 @@ sub pg_commit {
 
   $self->pg_tx->commit;
 
+  while ($self->pg_notify->size) {
+    my ($channel, $json) = @{shift @{$self->pg_notify}};
+
+    croak "Malformed Postgres PubSub notify"
+      unless defined $channel
+        and  not ref $channel
+        and  ref $json eq 'HASH';
+
+    croak "Unknown Postgres PubSub channel '$channel'"
+      unless grep { $_ eq $channel } $self->PUBSUB_CHANNELS;
+
+    $self->pg_pubsub->notify($channel => $json);
+  }
+
   return $self;
 }
+
+sub stash { Mojo::Util::_stash(stash => @_) }
 
 sub _load_model {
   my ($self, $name) = @_;

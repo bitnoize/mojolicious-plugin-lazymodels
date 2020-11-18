@@ -1,9 +1,8 @@
 package Mojolicious::Plugin::LazyModels;
 use Mojo::Base 'Mojolicious::Plugin';
 
-use Scalar::Util qw/looks_like_number/;
-use Mojo::Loader qw/load_class/;
 use Mojo::Pg;
+use Mojo::Loader qw/load_class/;
 
 our $VERSION = "0.05";
 $VERSION = eval $VERSION;
@@ -38,13 +37,16 @@ sub register {
 
   $app->helper(models_rw => sub {
     shift->{models} //= $app->{models}->new(
-      app => $app, pg_db => $app->pg_rw->db
+      app       => $app,
+      pg_db     => $app->pg_rw->db,
+      pg_pubsub => $app->pg_rw->pubsub
     );
   });
 
   $app->helper(models_ro => sub {
     shift->{models} //= $app->{models}->new(
-      app => $app, pg_db => $app->pg_ro->db
+      app   => $app,
+      pg_db => $app->pg_ro->db
     );
   });
 
@@ -64,8 +66,8 @@ sub register {
 
     my $pubsub = $app->pg_rw->pubsub;
     map {
-      my ($channel, $json) = @$_;
-      $pubsub->unlisten($channel => $json);
+      my ($channel, $handler) = @$_;
+      $pubsub->unlisten($channel => $handler);
     } @unlisten;
     return $pubsub;
   });
@@ -89,23 +91,31 @@ sub register {
     shift->in(0, 1)->has_error(shift)
   });
 
-  $app->validator->add_check(smallint => sub {
-    shift->num($app->{models}->RANGE_SMALLINT)->has_error(shift)
+  $app->validator->add_check(unsigned_smallint => sub {
+    shift->num($app->{models}->UNSIGNED_SMALLINT)->has_error(shift)
   });
 
-  $app->validator->add_check(integer => sub {
-    shift->num($app->{models}->RANGE_INTEGER)->has_error(shift)
+  $app->validator->add_check(unsigned_integer => sub {
+    shift->num($app->{models}->UNSIGNED_INTEGER)->has_error(shift)
   });
 
-  $app->validator->add_check(bigint => sub {
-    shift->num($app->{models}->RANGE_BIGINT)->has_error(shift)
+  $app->validator->add_check(unsigned_bigint => sub {
+    shift->num($app->{models}->UNSIGNED_BIGINT)->has_error(shift)
   });
 
-  $app->validator->add_check(text => sub {
-    shift->like($app->{models}->LIKE_TEXT)->has_error(shift)
+  $app->validator->add_check(signed_smallint => sub {
+    shift->num($app->{models}->SIGNED_SMALLINT)->has_error(shift)
   });
 
-  $app->validator->add_check(uuid => sub {
+  $app->validator->add_check(signed_integer => sub {
+    shift->num($app->{models}->SIGNED_INTEGER)->has_error(shift)
+  });
+
+  $app->validator->add_check(signed_bigint => sub {
+    shift->num($app->{models}->SIGNED_BIGINT)->has_error(shift)
+  });
+
+  $app->validator->add_check(like_uuid => sub {
     shift->like($app->{models}->LIKE_UUID)->has_error(shift)
   });
 
@@ -130,7 +140,7 @@ sub register {
 
 =head1 NAME
 
-Mojolicious::Plugin::LazyModels - Easy way to interact with PostgreSQL data models
+Mojolicious::Plugin::LazyModels - Easy way to interact with PostgreSQL Data Models
 
 =head1 AUTHOR
 
