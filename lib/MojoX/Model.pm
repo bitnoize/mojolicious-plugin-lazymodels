@@ -23,7 +23,7 @@ sub _entity_p {
   my @values = @{$params{values} //= []};
   my %onward = %{$params{onward} //= {}};
 
-  $params{reverse}  //= 0;
+  $params{invert}   //= 0;
   $params{strict}   //= 'none';
   $params{message}  //= "error.unknown_error_message";
   $params{stash}    //= 'none';
@@ -38,7 +38,7 @@ sub _entity_p {
     $self->stash($params{stash} => [$entity, %onward])
       if $params{stash} ne 'none';
 
-    unless ($params{reverse}) {
+    unless ($params{invert}) {
       return Mojo::Promise->reject(@params{qw/message strict/}, %onward)
         if $params{strict} ne 'none' and not defined $entity;
     }
@@ -74,7 +74,7 @@ sub _plenty_p {
     my $hashes = $result->expand->hashes;
     my $plenty = $hashes->to_array;
 
-    $onward{list_size} = $hashes->size;
+    $onward{size} = $hashes->size;
 
     $self->stash($params{stash} => [$plenty, %onward])
       if $params{stash} ne 'none';

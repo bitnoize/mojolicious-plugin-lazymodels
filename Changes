@@ -26,3 +26,6 @@
   - PubSub helpers for listen / unlisten and notify operations.
   - Fix memory leak with 'models' accessor in base Model.pm.
 
+0.06 2020-12-31
+  - Minor fixes.
+

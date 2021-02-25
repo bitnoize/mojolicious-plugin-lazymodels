@@ -4,7 +4,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::Pg;
 use Mojo::Loader qw/load_class/;
 
-our $VERSION = "0.05";
+our $VERSION = "0.06";
 $VERSION = eval $VERSION;
 
 sub register {
@@ -22,11 +22,11 @@ sub register {
   #
 
   $app->helper(pg_rw => sub {
-    state $pg = Mojo::Pg->new($conf->{readwrite});
+    $app->{pg_rw} //= Mojo::Pg->new($conf->{readwrite});
   });
 
   $app->helper(pg_ro => sub {
-    state $pg = Mojo::Pg->new($conf->{readonly})->options({
+    $app->{pg_ro} //= Mojo::Pg->new($conf->{readonly})->options({
       ReadOnly => 1, AutoCommit => 0
     });
   });
@@ -36,7 +36,7 @@ sub register {
   #
 
   $app->helper(models_rw => sub {
-    shift->{models} //= $app->{models}->new(
+    shift->{models_rw} //= $app->{models}->new(
       app       => $app,
       pg_db     => $app->pg_rw->db,
       pg_pubsub => $app->pg_rw->pubsub
@@ -44,7 +44,7 @@ sub register {
   });
 
   $app->helper(models_ro => sub {
-    shift->{models} //= $app->{models}->new(
+    shift->{models_ro} //= $app->{models}->new(
       app   => $app,
       pg_db => $app->pg_ro->db
     );
